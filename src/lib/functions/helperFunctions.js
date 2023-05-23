@@ -1,7 +1,6 @@
 export function generateColumns(matrixSize) {
 	const columns = Array.from({ length: Math.sqrt(matrixSize) }, () => '1fr');
-	const gridStyle = `grid-template-columns: repeat(${Object.keys(columns).length}, 1fr);`;
-	return gridStyle;
+	return `grid-template-columns: repeat(${Object.keys(columns).length}, 1fr);`;
 }
 
 export function generateMatrix(matrixSize) {
@@ -72,16 +71,13 @@ function generateSets(matrix, totalSets, neighborAreaMin, neighborAreaMax) {
 			}
 		}
 
-		const cellsToUpdate = [startIndex, ...selectedNeighbors];
+		let cellsToUpdate = [startIndex, ...selectedNeighbors];
 		sets.push(cellsToUpdate);
-		console.log(
-			`Set ${i}:
-			Starting Index = ${startIndex}
-			Total Neighbors = ${numNeighbors}
-			Neighbors = ${selectedNeighbors}`
+		console.log(`Set: ${i}) 
+		Starting Index = ${startIndex} | Total Neighbors = ${numNeighbors}
+		Neighbors = ${selectedNeighbors}`
 		);
 	}
-
 	return sets;
 }
 
@@ -96,85 +92,154 @@ export function BSGMGC(
 	console.log('--------------------');
 	console.log('Running Algorithm');
 
-	let pickTurn = 1;
+	//This will hold some overlapping elements, but we will try to find as many non-overlapping elements as possible
+	let finalSet = [];
 
+	//Generate Total sets, sort them, and pop the biggest one
 	let totalSetsArray = generateSets(matrix, totalSets, neighborAreaMin, neighborAreaMax);
+	totalSetsArray.sort((a, b) => a.length - b.length);
 
-	let C = [];
-	while (C.length < totalSetsSelected) {
-		if (totalSetsSelected - C.length == 1) {
-			console.log('Finished');
-			C.push(1);
-		} else {
-			console.log('Picking turn: ', pickTurn);
-			// let q = (totalSetsSelected - C.length) < stepSize ? (totalSetsSelected - C.length) : stepSize;
-			let possibleCombinations = generateCombinations(totalSetsArray, stepSize);
-			possibleCombinations.sort((a, b) => b.length - a.length);
+	console.log("Total Sets: ")
+	console.table(totalSetsArray)
+	console.log(totalSetsArray)
 
-			// console.log("")
-			let tableData = possibleCombinations.map((comb) => ({ combination: comb.join(' ||| ') }));
-			console.table(tableData);
 
-			//TODO left here
+	finalSet.push(totalSetsArray.pop())
+	totalSetsSelected--
 
-			// let combinationsMap = new Map();
 
-			// console.table(matrix)
+	//Set tracker keeps track of how many non-overlapping elements there are in total
+	let setTracker = new Set()
+	finalSet.forEach((set) => { set.forEach(cell => setTracker.add(cell))})
 
-			// possibleCombinations.forEach((combination) => {
-			// 	console.log("Combination: ", combination)
-			// 	combination.forEach((group) => {
-			// 		console.log("Group: ", group)
-			// 		group.forEach((cell) => {
-			// 			console.log("Cell: ", cell)
-			// 			console.log(matrix[cell])
-			// 			let newCell = { ...matrix[cell] }
-			// 			newCell.health = 1000
-			// 			newCell.color = generateColor(10)
-			// 			console.log(newCell)
-			// 			matrix = [...matrix.splice(0, cell), ...matrix.splice(cell + 1)]
-			// 			// matrix = newCell
-			// 			// console.log(matrix)
-			// 			return
-			// 		})
-			// 	})
-			// 	// matrix.forEach((cell) => {
-			// 	// 	// console.log(cell)
-			// 	// })
-			// })
-			// console.log("End matrix: ", matrix)
+	//Keep adding sets until we reach user selected limit
+	while (totalSetsSelected !== 0){
 
-			// for (let combination of possibleCombinations) {
-			// let repair = 0;
-			// console.log(matrix)
-			// let intersectionSize = combination[0].length;
+		//This keeps track of how many key, pair values there are
+		//But we will need to sort the array, so we can get the index of it
+		let nonOverlapArray = []
+		let setCounter = 0
 
-			// for (let i = 1; i < combination.length; i++) {
-			// 	let set = new Set(combination[i].map(cell => cell.index));
-			// 	let newIntersectionSet = new Set([...intersectionSet].filter(x => set.has(x)));
-			// 	let newIntersectionSize = newIntersectionSet.size;
-			// 	let maxIntersectionSet = intersectionSize >= newIntersectionSize ? intersectionSet : set;
-			// 	let W = new Set([...maxIntersectionSet].filter(x => !newIntersectionSet.has(x)));
-			// 	repair += W.size;
-			// 	intersectionSet = newIntersectionSet;
-			// 	intersectionSize = newIntersectionSize;
-			// }
+		totalSetsArray.forEach((set) =>{
+			let nonOverlapCounter = 0;
+			set.forEach((cell) => {if (!setTracker.has(cell)){nonOverlapCounter++}})
+			console.log("Set# ", setCounter, set, "Non-overlap: ", nonOverlapCounter)
+			nonOverlapArray.push([setCounter, nonOverlapCounter])
+			setCounter++
+		})
 
-			// let combinationKey = JSON.stringify(combination);
-			// combinationsMap.set(combinationKey, repair);
-			// }
+		console.log("nonOverlapArray")
+		console.table(nonOverlapArray)
 
-			// console.log(combinationsMap)
-			for (let i = 0; i < stepSize; i++) {
-				C.push(i);
-			}
-			pickTurn++;
-		}
+		nonOverlapArray.sort((a, b) => a[1] - b[1]);
+
+		console.log("nonOverlapArray 2")
+		console.table(nonOverlapArray)
+		let popFromTotalSetsArrayIndex = nonOverlapArray[nonOverlapArray.length-1][0]
+		console.log("Checking")
+		finalSet.push(totalSetsArray[popFromTotalSetsArrayIndex])
+		totalSetsArray.splice(popFromTotalSetsArrayIndex, 1)
+		console.log('totalSetsArray')
+		console.table(totalSetsArray)
+		finalSet.forEach((cell) =>{setTracker.add(cell)})
+
+		totalSetsSelected--
 	}
-	// console.log(C)
+
+
+	console.log("Final set  ", finalSet)
 	console.log('--------------------');
-	return C;
+	return finalSet;
 }
+
+
+
+
+
+
+
+// export function BSGMGC(
+// 	matrix,
+// 	totalSets,
+// 	totalSetsSelected,
+// 	stepSize,
+// 	neighborAreaMin,
+// 	neighborAreaMax
+// ) {
+// 	console.log('--------------------');
+// 	console.log('Running Algorithm');
+//
+// 	let pickTurn = 1;
+//
+// 	let totalSetsArray = generateSets(matrix, totalSets, neighborAreaMin, neighborAreaMax);
+// 	totalSetsArray.sort((a, b) => b.length - a.length);
+//
+// 	let finalSet = new Set();
+//
+// 	totalSetsArray[0].forEach((cell)=>{finalSet.add(cell)})
+// 	totalSetsArray = totalSetsArray.slice(1);
+//
+// 	console.log("Final set  ", finalSet)
+//
+// 	while (finalSet.size < totalSetsSelected) {
+// 		if (totalSetsSelected - finalSet.size === 1) {
+// 			console.log('Step size 1');
+// 			finalSet.add(finalSet.size + 1);
+// 			console.log("finalSet: ", finalSet)
+// 			console.log('Finished');
+// 		} else {
+// 			console.log('Picking turn: ', pickTurn);
+// 			stepSize = (totalSetsSelected - finalSet.size) < stepSize ? (totalSetsSelected - finalSet.size) : stepSize;
+// 			let possibleCombinations = generateCombinations(totalSetsArray, stepSize);
+// 			possibleCombinations.sort((a, b) => b.length - a.length);
+// 			let tableData = possibleCombinations.map((comb) => ({ combination: comb.join(' ||| ') }));
+// 			console.table(tableData);
+//
+// 			//
+// 			// let combinationsMap = [];
+// 			// let i = 0
+// 			// possibleCombinations.forEach((combination) => {
+// 			// 	// console.log("Combination: ", combination)
+// 			// 	let groupTracker = 0
+// 			// 	combination.forEach((group) => {
+// 			// 		// console.log("Group: ", group)
+// 			// 		group.forEach((cell) => {
+// 			// 			// console.log("Cell: ", cell)
+// 			// 			// console.log(matrix[cell])
+// 			// 			if (!finalSet.has(cell)){
+// 			// 				groupTracker++
+// 			// 			}
+// 			// 		})
+// 			// 	})
+// 			// 	combinationsMap.push([i, groupTracker])
+// 			// 	i++
+// 			// })
+// 			//
+// 			// combinationsMap.sort((a, b) => b[1] - a[1]);
+// 			//
+// 			// console.log("combinationsMap")
+// 			// console.table(combinationsMap)
+//
+// 			for (let i = 0; i < stepSize; i++) {
+// 				finalSet.add(finalSet.size + 1)
+// 			}
+// 			pickTurn++;
+// 			console.log("finalSet: ", finalSet)
+// 		}
+// 	}
+// 	// console.log(finalSet)
+// 	console.log('--------------------');
+// 	return finalSet;
+// }
+
+
+
+
+
+
+
+
+
 
 // export function BSGMGC(S, k, p) {
 // 	let C = [];
@@ -214,25 +279,24 @@ export function BSGMGC(
 // 		}));
 // 		W = new Set([...W].filter(x => !maxIntersectionSet.has(x)));
 
-// 		// Step 4: Add the selected set to C
-// 		C = C.concat(selectedSets);
+// 		finalSet = finalSet.concat(selectedSets);
 // 	}
 
 // 	console.table("End result");
-// 	console.table(C);
+// 	console.table(finalSet);
 
-// 	return C;
+// 	return finalSet;
 // }
 
 // export function BSGMGC(S, k, p) {
-// 	let C = [];
+// 	let finalSet = [];
 // 	let W = new Set(S.flat());
 
 // 	p = parseInt(p)
 
 // 	console.log("Step size: ", p)
 
-// 	while (C.length < k) {
+// 	while (finalSet.length < k) {
 // 		let possibleCombinations = generateCombinations(S, p)
 // 		possibleCombinations.sort((a, b) => b.length - a.length);
 // 		console.log("Possible combinations")
@@ -279,14 +343,13 @@ export function BSGMGC(
 // 		}
 // 		console.log("W after removing elements: ", W);
 
-// 		// Step 4: Add the selected set to C
-// 		C.push(selectedCombination);
+// 		finalSet.push(selectedCombination);
 // 		console.table("Update table");
-// 		console.table(C);
+// 		console.table(finalSet);
 // 	}
 // 	console.table("End result");
-// 	console.table(C);
-// 	return C;
+// 	console.table(finalSet);
+// 	return finalSet;
 // }
 
 function generateCombinations(S, stepSize) {
@@ -368,24 +431,24 @@ function generateCombinations(S, stepSize) {
 // 		W = new Set([...W].filter(x => !maxIntersectionSet.includes(x)));
 
 // 		// Add the selected set to C
-// 		C.push(maxIntersectionSet);
+// 		finalSet.push(maxIntersectionSet);
 // 	}
 
-// 	return C;
+// 	return finalSet;
 // }
 
 // export function BSGMGC(collection, k, p) {
-// 	let C = [];
+// 	let finalSet = [];
 // 	let W = new Set(collection.flat());
 
-// 	while (C.length < k) {
-// 		let q = Math.min(p, k - C.length);
+// 	while (finalSet.length < k) {
+// 		let q = Math.min(p, k - finalSet.length);
 // 		let maxIntersection = -Infinity;
 // 		let maxSet = null;
 
 // 		// Find the set that maximizes the intersection with W
 // 		for (let i = 0; i < collection.length; i++) {
-// 			if (C.includes(collection[i])) {
+// 			if (finalSet.includes(collection[i])) {
 // 				continue;
 // 			}
 
@@ -401,10 +464,10 @@ function generateCombinations(S, stepSize) {
 // 			}
 // 		}
 
-// 		// Remove the selected elements from W and add the selected set to C
+// 		// Remove the selected elements from W and add the selected set to finalSet
 // 		W = new Set([...W].filter(x => !maxSet.includes(x)));
-// 		C.push(maxSet);
+// 		finalSet.push(maxSet);
 // 	}
 
-// 	return C;
+// 	return finalSet;
 // }
